@@ -60,6 +60,11 @@ input{font-family:inherit}
 .tally i[data-s="new"]{background:var(--amber);border-color:var(--amber)}
 .tally i[data-s="done"]{background:var(--sage-lo);border-color:var(--sage-lo)}
 .tally i[data-pb="1"]{box-shadow:inset 0 0 0 1.5px var(--bone)}
+.grid{display:grid;gap:3px;padding:13px 15px 0}
+.grid i{aspect-ratio:1;border:1px solid var(--line2);border-radius:2px}
+.grid i[data-s="full"]{background:var(--amber);border-color:var(--amber)}
+.grid i[data-s="short"]{background:var(--amber-lo);border-color:var(--amber-lo)}
+.grid i[data-s="done"]{background:var(--sage);border-color:var(--sage)}
 
 .goal{display:flex;justify-content:space-between;align-items:center;padding:11px 15px 0;
   font-family:var(--mono);font-size:11px;color:var(--mute)}
@@ -212,7 +217,7 @@ input{font-family:inherit}
 "use strict";
 const SEED = {"entries":[],"timeEntries":[],"bank":[{"n":"Iso-lateral Decline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Incline Bench Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push-ups","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Incline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push Up","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Assisted Pull-up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Basic Back Extension","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Barbell Row","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Iso-lateral pull","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Pull Up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Deadlift","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Dumbbell Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Lateral Raise","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Face Pull","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength ground base squat/lunge both legs","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer strength ground base squat/lunge single leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Leg extension Single Leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Adduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Abduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Leg Extension","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Calf Raise","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Bar)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Dumbbell)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Tricep Pulldown","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Skull Crusher","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Dips","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Cable Crunch","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Leg Raises","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Russian Twist","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Hanging Knee Raise","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Kettlebell Swing","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Farmer Carry","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Clean and Press","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Run 1km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 3km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 5km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 10km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Bike","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Rowing Machine","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Side Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Hollow Hold","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Wall Sit","m":"Legs","c":"Time-Based","pt":"Hold Time"}]};
 const KEY = "gym:v1";
-const APP_VERSION = "5.1";   // bumped whenever the app changes
+const APP_VERSION = "6.0";   // bumped whenever the app changes
 const DATA_VERSION = 3;      // bumped only when the shape of stored data changes
 const DEFAULTS = {rest:90, goalSets:10, goalReps:10, step:2.5, perEx:{}};
 
@@ -263,22 +268,56 @@ const nice=n=>String(Math.round(n*100)/100);
 /* ---------- goal logic ---------- */
 function isBW(es){ const w=es.flatMap(e=>e.sets.map(s=>s.w)); return w.length ? Math.max(...w)<=1 : false; }
 
-function analyse(es,G){
-  const sorted=[...es].sort((a,b)=>a.d<b.d?1:-1), lastDate=sorted[0].d;
-  const last=sorted.filter(e=>e.d===lastDate);
-  const cum=new Map();
-  for(const e of es) for(const s of e.sets) cum.set(s.w,(cum.get(s.w)||0)+s.r);
-  const lastWeights=[...new Set(last.flatMap(e=>e.sets.map(s=>s.w)))].sort((a,b)=>a-b);
-  const open=lastWeights.filter(w=>(cum.get(w)||0)<G);
-  const best1rm=Math.max(...es.flatMap(e=>e.sets.map(s=>epley(s.w,s.r))));
-  const trend=[...es].sort((a,b)=>a.d<b.d?-1:1).map(e=>({d:e.d,v:Math.max(...e.sets.map(s=>epley(s.w,s.r)))}));
-  if(!open.length){
-    const w=lastWeights[lastWeights.length-1];
-    return {complete:true,lastDate,weight:w,G,banked:G,toGo:0,fromLast:0,lastWeights,cum,best1rm,trend};
+/* A weight is cleared only by a clean session: N sets at that weight where every
+   one of them hit the rep target. Falling short doesn't erase the set — it just
+   means the weight isn't signed off, so you run it again next time. */
+function setsAt(entry, w, M){
+  const at = entry.sets.filter(s => s.w === w);
+  return {total: at.length, full: at.filter(s => s.r >= M).length, list: at};
+}
+function clearedAt(es, w, N, M){
+  return es.some(e => setsAt(e, w, M).full >= N);
+}
+function analyse(es, g){
+  const N = g.sets, M = g.reps, G = g.target;
+  const sorted = [...es].sort((a,b) => a.d < b.d ? 1 : -1);
+  const lastDate = sorted[0].d;
+  const last = sorted.filter(e => e.d === lastDate);
+
+  const lastWeights = [...new Set(last.flatMap(e => e.sets.map(s => s.w)))].sort((a,b) => a-b);
+  const open = lastWeights.filter(w => !clearedAt(es, w, N, M));
+
+  const best1rm = Math.max(...es.flatMap(e => e.sets.map(s => epley(s.w, s.r))));
+  const trend = [...es].sort((a,b) => a.d < b.d ? -1 : 1)
+    .map(e => ({d: e.d, v: Math.max(...e.sets.map(s => epley(s.w, s.r)))}));
+
+  /* Best clean-set count ever managed at a weight, and when. */
+  function bestRun(w){
+    let n = 0, when = null;
+    for(const e of es){ const c = setsAt(e, w, M).full; if(c > n){ n = c; when = e.d; } }
+    return {n, when};
   }
-  const weight=open[0], banked=cum.get(weight)||0;
-  const fromLast=last.reduce((t,e)=>t+e.sets.filter(s=>s.w===weight).reduce((u,s)=>u+s.r,0),0);
-  return {complete:false,lastDate,weight,G,banked,toGo:G-banked,fromLast,lastWeights,cum,best1rm,trend};
+
+  if(!open.length){
+    const w = lastWeights[lastWeights.length-1];
+    return {complete:true, lastDate, weight:w, N, M, G, sets:N, short:0, toGo:0,
+            attemptDate:lastDate, best:bestRun(w), lastWeights, best1rm, trend, bestRun};
+  }
+
+  const weight = open[0];
+  /* The live attempt is whatever happened at this weight in the latest session —
+     which is today once you start logging, and last session's effort before that. */
+  const cur = last.reduce((acc,e) => {
+    const c = setsAt(e, weight, M);
+    acc.full += c.full; acc.total += c.total; acc.list = acc.list.concat(c.list);
+    return acc;
+  }, {full:0, total:0, list:[]});
+
+  return {complete:false, lastDate, weight, N, M, G,
+          sets: cur.full, short: cur.total - cur.full, list: cur.list,
+          toGo: Math.max(0, N - cur.full),
+          attemptDate: lastDate, best: bestRun(weight),
+          lastWeights, best1rm, trend, bestRun};
 }
 
 function analyseBW(es){
@@ -339,8 +378,8 @@ function muscleGroups(){
 /* An exercise just added to today's session has no sets yet, so there is
    nothing to analyse — give it a blank slate rather than a broken card. */
 function blank(){
-  return {isNew:true,complete:false,lastDate:todayISO(),weight:0,G:100,banked:0,toGo:100,
-          fromLast:0,lastWeights:[],cum:new Map(),best1rm:0,trend:[]};
+  return {isNew:true,complete:false,lastDate:todayISO(),weight:0,G:100,N:10,M:10,
+          sets:0,short:0,list:[],toGo:10,best:{n:0,when:null},lastWeights:[],best1rm:0,trend:[]};
 }
 function stats(){
   const by=new Map();
@@ -348,7 +387,7 @@ function stats(){
   return [...by.entries()].map(([name,es])=>{
     const g=goalFor(name);
     const logged=es.filter(e=>e.sets.length);
-    const a = !logged.length ? Object.assign(blank(),{G:g.target}) : (isBW(logged)?analyseBW(logged):analyse(logged,g.target));
+    const a = !logged.length ? Object.assign(blank(),{G:g.target,N:g.sets,M:g.reps}) : (isBW(logged)?analyseBW(logged):analyse(logged,g));
     a.goal=g;
     return {name,muscle:es[0].m||"Other",a,n:logged.length};
   }).sort((a,b)=>a.a.lastDate<b.a.lastDate?1:a.a.lastDate>b.a.lastDate?-1:a.name.localeCompare(b.name));
@@ -406,15 +445,23 @@ function tallyHTML(a){
     for(let i=0;i<cells;i++) o+='<i data-s="'+(i<a.lastBest?(a.fresh?"done":"new"):"")+'"'+(i===a.pb-1?' data-pb="1"':'')+'></i>';
     return o+"</div>";
   }
-  const G=a.G||100;
-  const cols = G>140 ? 20 : 10;
-  const filled=Math.min(a.banked,G), fresh=Math.min(a.fromLast||0,filled), oldN=filled-fresh;
-  let o='<div class="tally" data-cols="'+cols+'" aria-label="'+filled+' of '+G+' reps banked">';
-  for(let i=0;i<G;i++) o+='<i data-s="'+(a.complete?(i<filled?"done":""):(i<oldN?"old":(i<filled?"new":"")))+'"></i>';
+  /* One row per set you owe, one cell per rep. A full row is a set that counted;
+     a part-filled row is a set that fell short. */
+  const N=a.N||10, M=a.M||10, list=a.list||[];
+  let o='<div class="grid" style="grid-template-columns:repeat('+M+',1fr)" '
+    +'aria-label="'+(a.sets||0)+' of '+N+' sets completed">';
+  for(let r=0;r<N;r++){
+    const set=list[r];
+    const got=set?Math.min(set.r,M):0;
+    const full=set&&set.r>=M;
+    for(let c=0;c<M;c++){
+      o+='<i data-s="'+(c<got?(a.complete?"done":(full?"full":"short")):"")+'"></i>';
+    }
+  }
   return o+"</div>";
 }
 function miniHTML(a){
-  let o='<div class="mini">', pct = a.bw ? a.lastBest/a.target : Math.min(a.banked,a.G||100)/(a.G||100);
+  let o='<div class="mini">', pct = a.bw ? a.lastBest/a.target : Math.min(a.sets||0,a.N||10)/(a.N||10);
   const full=Math.floor(pct*10), part=(pct*10)-full>0.05;
   for(let i=0;i<10;i++) o+='<i data-s="'+(i<full?"1":(i===full&&part?"p":""))+'"></i>';
   return o+"</div>";
@@ -439,6 +486,7 @@ function head(a){
   if(a.isNew) return {n:"—", u:"first session"};
   if(a.bw) return {n:a.pb, u:(a.fresh?"new best · reps":"best set · reps")};
   if(a.complete) return {n:nice(Math.abs(a.weight)), u:(a.weight<0?"cleared · kg assist":"cleared · kg")};
+  if(a.isNew) return {n:"—", u:"first session"};
   return {n:nice(Math.abs(a.weight)), u:(a.weight<0?"working · kg assist":"working · kg")};
 }
 function goalLine(a){
@@ -446,10 +494,13 @@ function goalLine(a){
   if(a.bw) return a.fresh
     ? '<span>up from <b>'+a.prevPB+'</b></span><span class="go">Beat '+a.target+' next</span>'
     : '<span>last session <b>'+a.lastBest+'</b></span><span class="go">'+(a.target-a.lastBest)+' more for a best</span>';
-  const G=a.G||100;
-  return a.complete
-    ? '<span><b>'+G+'</b> reps banked</span><span class="go">'+(a.weight<0?"Cut the assist":"Go heavier")+'</span>'
-    : '<span><b>'+a.banked+'</b> of '+G+' reps</span><span class="go">'+a.toGo+' to go</span>';
+  const N=a.N||10, M=a.M||10;
+  if(a.complete) return '<span><b>'+N+'×'+M+'</b> cleared</span><span class="go">'+(a.weight<0?"Cut the assist":"Go heavier")+'</span>';
+  const live = a.attemptDate===todayISO();
+  return '<span><b>'+(a.sets||0)+'</b> of '+N+' sets'
+    + (a.short?' · <b>'+a.short+'</b> short':'')
+    + (live?'':' last time')
+    + '</span><span class="go">'+a.toGo+' set'+(a.toGo===1?'':'s')+' to go</span>';
 }
 
 /* ---------- today ---------- */
@@ -514,7 +565,12 @@ function lastTimeHTML(name,a){
   const prev=D.entries.filter(e=>e.e===name&&e.sets.length&&e.d<todayISO())
     .sort((x,y)=>x.d<y.d?1:-1)[0];
   if(!prev) return '<div class="last">First time logging this.</div>';
-  return '<div class="last"><b>Last time · '+fmtDate(prev.d)+'</b><br>'
+  let tail="";
+  if(!a.bw && a.weight!=null){
+    const c=setsAt(prev,a.weight,a.M||10);
+    if(c.total) tail=' — '+c.full+' of '+(a.N||10)+' sets clean at '+nice(Math.abs(a.weight))+' kg';
+  }
+  return '<div class="last"><b>Last time · '+fmtDate(prev.d)+tail+'</b><br>'
     + prev.sets.map(x=>a.bw?x.r:(nice(Math.abs(x.w))+"×"+x.r)).join("   ") + '</div>';
 }
 function noteHTML(entry,i){
@@ -567,13 +623,18 @@ function detailHTML(s){
       +'<div class="row"><span>Sessions</span><b>'+a.sessions+'</b></div>'
       +'<div class="row"><span>Total reps all time</span><b>'+a.totalReps+'</b></div>';
   } else {
+    const N=a.N||10, M=a.M||10;
     h+='<div class="row"><span>Best estimated 1RM</span><b>'+nice(a.best1rm)+' kg</b></div>'
       +'<div class="row"><span>Sessions</span><b>'+s.n+'</b></div>'
-      +'<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:8px"><span>Rep bank by weight</span></div>';
-    [...a.cum.entries()].sort((x,y)=>x[0]-y[0]).forEach(([w,n])=>{
-      const G=a.G||100;
+      +(a.best&&a.best.n?'<div class="row"><span>Best run at '+nice(Math.abs(a.weight))+' kg</span><b>'
+        +a.best.n+' of '+N+' sets · '+fmtDate(a.best.when)+'</b></div>':"")
+      +'<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:8px"><span>Best clean run by weight</span></div>';
+    const weights=[...new Set(D.entries.filter(e=>e.e===s.name).flatMap(e=>e.sets.map(x=>x.w)))].sort((x,y)=>x-y);
+    weights.forEach(w=>{
+      const b=a.bestRun?a.bestRun(w):{n:0};
+      const ok=b.n>=N;
       h+='<div class="row"><span>'+nice(Math.abs(w))+' kg'+(w<0?' assist':'')+'</span>'
-        +'<b'+(n>=G?' style="color:var(--sage)"':'')+'>'+n+' reps'+(n>=G?" ✓":"")+'</b></div>';
+        +'<b'+(ok?' style="color:var(--sage)"':'')+'>'+b.n+'/'+N+' sets'+(ok?" ✓":"")+'</b></div>';
     });
   }
   if(!a.bw){
@@ -583,7 +644,7 @@ function detailHTML(s){
       + sRow("Sets", g.sets, "exsets").replace(/data-act="exsets"/g,'data-act="exsets" data-v="'+esc(s.name)+'"')
       + sRow("Reps per set", g.reps, "exreps").replace(/data-act="exreps"/g,'data-act="exreps" data-v="'+esc(s.name)+'"')
       + sRow("Increment", nice(g.step)+" kg", "exstep").replace(/data-act="exstep"/g,'data-act="exstep" data-v="'+esc(s.name)+'"')
-      +'<div class="note" style="margin-top:8px">Banking '+(g.sets*g.reps)+' reps clears a weight here.</div>'
+      +'<div class="note" style="margin-top:8px">'+g.sets+' clean sets of '+g.reps+' in one session clears a weight here.</div>'
       +(g.custom?'<button class="usebtn" data-act="exclear" data-v="'+esc(s.name)+'" style="margin-left:0;margin-right:0;width:100%">Use the default goal instead</button>':"");
   }
   return h+'</div>';
@@ -613,7 +674,7 @@ function viewProgress(){
       +'<span class="a"><span class="nm">'+i+'</span>'
       +'<span class="w">'+(a.bw?a.pb+'<span style="font-size:11px"> reps</span>':nice(Math.abs(a.weight))+'<span style="font-size:11px"> kg</span>')+'</span></span>'
       +'<span class="b">'+miniHTML(a)
-      +'<span class="c">'+(a.isNew?"new":(a.bw?(done?"best":a.lastBest+"/"+a.target):(a.complete?"cleared":a.banked+"/"+(a.G||100))))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
+      +'<span class="c">'+(a.isNew?"new":(a.bw?(done?"best":a.lastBest+"/"+a.target):(a.complete?"cleared":(a.sets||0)+"/"+(a.N||10)+" sets")))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
       + (open?detailHTML(s)
           +'<button class="solid" data-act="totoday" data-v="'+i+'" style="margin-top:12px">Add to today</button>'
           +'<button class="solid" data-alt="1" data-act="wipe" data-v="'+i+'" style="margin-top:8px">Delete exercise</button>':"")
@@ -668,7 +729,7 @@ function viewData(){
     + sRow("Reps per set", g.goalReps, "setreps")
     +'<div class="srow" style="border:none;padding-top:4px"><div class="sl"><div class="k" style="color:var(--amber)">'
       +g.goalSets+' × '+g.goalReps+' = '+(g.goalSets*g.goalReps)+' reps</div>'
-      +'<div class="sn">Bank this many reps at a weight before moving up.</div></div></div>'
+      +'<div class="sn">Complete this many clean sets at a weight, in one session, to clear it.</div></div></div>'
     + sRow("Weight increment", nice(g.step)+" kg", "setstep", "How much to add when a weight is cleared.")
     + sRow("Rest timer", Number(g.rest)?mmss(Number(g.rest)):"Off", "setrest", "Starts automatically after each set.")
     +(overrides.length?'<div class="note" style="margin:12px 0 0">'+overrides.length+' exercise'+(overrides.length>1?"s have":" has")+' a custom goal. Change or clear it from that exercise under Progress.</div>':"")
@@ -682,9 +743,10 @@ function viewData(){
     +'<div class="note" style="margin:9px 0 16px">Replaces everything in the app.</div>'
     +'<button class="solid" data-alt="1" data-act="reset">Start over</button>'
 
-    +'<div class="note" style="margin-top:24px"><b style="color:var(--mute)">Weighted:</b> a weight clears once it banks '
-    +(g.goalSets*g.goalReps)+' reps. Your working weight is the lightest from your last session that hasn\'t cleared — '
-    +'heavier sets bank toward their own goals.<br><br>'
+    +'<div class="note" style="margin-top:24px"><b style="color:var(--mute)">Weighted:</b> a weight clears when you complete '
+    +g.goalSets+' sets of '+g.goalReps+' in a single session. Sets that fall short of '+g.goalReps
+    +' reps still get logged, but they don\'t count toward the '+g.goalSets+' — so you run that weight again next time '
+    +'rather than moving up. Progress doesn\'t carry between sessions; each session is a fresh attempt.<br><br>'
     +'<b style="color:var(--mute)">Bodyweight:</b> anything at 1 kg. No load to add, so the goal is beating your best single set.<br><br>'
     +'<b style="color:var(--mute)">Removing things:</b> “Remove from today” clears an exercise from this session only. '
     +'“Delete exercise” under Progress erases it and all its history for good.</div>'
