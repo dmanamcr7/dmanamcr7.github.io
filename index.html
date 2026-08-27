@@ -217,9 +217,10 @@ input{font-family:inherit}
 "use strict";
 const SEED = {"entries":[],"timeEntries":[],"bank":[{"n":"Iso-lateral Decline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Incline Bench Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push-ups","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Incline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push Up","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Assisted Pull-up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Basic Back Extension","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Barbell Row","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Iso-lateral pull","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Pull Up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Deadlift","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Dumbbell Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Lateral Raise","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Face Pull","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength ground base squat/lunge both legs","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer strength ground base squat/lunge single leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Leg extension Single Leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Adduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Abduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Leg Extension","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Calf Raise","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Bar)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Dumbbell)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Tricep Pulldown","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Skull Crusher","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Dips","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Cable Crunch","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Leg Raises","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Russian Twist","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Hanging Knee Raise","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Kettlebell Swing","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Farmer Carry","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Clean and Press","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Run 1km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 3km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 5km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 10km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Bike","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Rowing Machine","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Side Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Hollow Hold","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Wall Sit","m":"Legs","c":"Time-Based","pt":"Hold Time"}]};
 const KEY = "gym:v1";
-const APP_VERSION = "6.1";   // bumped whenever the app changes
-const DATA_VERSION = 3;      // bumped only when the shape of stored data changes
-const DEFAULTS = {rest:90, goalSets:10, goalReps:10, step:2.5, perEx:{}};
+const APP_VERSION = "7.0";   // bumped whenever the app changes
+const DATA_VERSION = 4;      // bumped only when the shape of stored data changes
+const DEFAULTS = {rest:90, goalSets:10, goalReps:10, step:2.5, perEx:{},
+  cardioRuns:3, paceStep:10, holdStep:10};
 
 /* Brings older saved data up to the current shape. Each step is additive, so a
    log written by any previous version keeps working after an update. */
@@ -230,6 +231,16 @@ function migrate(d){
     d.bodyweight = d.bodyweight || [];        // [{d:'YYYY-MM-DD', kg:Number}]
     d.settings   = Object.assign({}, DEFAULTS, d.settings || {});
     // entries gain an optional .note; absent is fine, nothing to convert
+  }
+  if(from < 4){
+    /* The workbook's Time-Based Log finally gets used. Old rows carry a
+       Performance Type of Speed or Hold Time; map them onto the new shape. */
+    d.cardio = d.cardio || (d.timeEntries||[]).map(t => ({
+      id: uid(), d: t.d, e: t.e, m: t.m || "Cardio",
+      type: (t.pt === "Hold Time") ? "hold" : "speed",
+      km: t.km || 0, secs: t.secs || 0
+    })).filter(x => x.secs > 0);
+    d.settings = Object.assign({}, DEFAULTS, d.settings || {});
   }
   if(from < 3){
     // the 10x10 rep bank was hard-coded; it becomes a setting anyone can change
@@ -363,11 +374,73 @@ function prKind(set, pb){
   return null;
 }
 
+/* ---------- cardio ---------- */
+
+function fmtSecs(t){
+  t=Math.round(t);
+  const h=Math.floor(t/3600), m=Math.floor((t%3600)/60), sec=t%60;
+  return h ? h+":"+pad(m)+":"+pad(sec) : m+":"+pad(sec);
+}
+function fmtPace(secPerKm){ return fmtSecs(secPerKm)+" /km"; }
+function kmh(km,secs){ return secs>0 ? (km/(secs/3600)) : 0; }
+
+function cardioType(name){
+  const b=D.bank.find(x=>x.n===name);
+  if(b && b.pt) return b.pt==="Hold Time" ? "hold" : "speed";
+  const c=(D.cardio||[]).find(x=>x.e===name);
+  return c ? c.type : "speed";
+}
+function isCardioName(name){
+  const b=D.bank.find(x=>x.n===name);
+  if(b) return b.c==="Time-Based";
+  return (D.cardio||[]).some(x=>x.e===name);
+}
+function cardioGoal(name){
+  const g=D.settings, o=(g.perEx&&g.perEx[name])||null;
+  return {runs:(o&&o.runs)||g.cardioRuns,
+          step:(o&&o.cstep)|| (cardioType(name)==="hold" ? g.holdStep : g.paceStep),
+          custom:!!(o&&(o.runs||o.cstep))};
+}
+
+/* Target walks forward through history exactly as the working weight does:
+   hold the target for N efforts and it tightens by one step, then the count
+   starts again. Nothing is stored — it's all derived from what you logged. */
+function analyseCardio(rows, name){
+  const type=cardioType(name), g=cardioGoal(name);
+  const sorted=[...rows].sort((a,b)=>a.d<b.d?-1:1);
+  const score=r => type==="hold" ? r.secs : (r.km>0 ? r.secs/r.km : Infinity);
+  const better=(a,b)=> type==="hold" ? a>b : a<b;   // holds go up, paces go down
+
+  const first=score(sorted[0]);
+  let target = type==="hold" ? Math.floor(first/5)*5 : Math.ceil(first/5)*5;
+  let banked=0, tightened=0;
+  for(const r of sorted){
+    const v=score(r);
+    if(type==="hold" ? v>=target : v<=target){
+      banked++;
+      if(banked>=g.runs){ target = type==="hold" ? target+g.step : Math.max(1,target-g.step);
+                          banked=0; tightened++; }
+    }
+  }
+  const last=sorted[sorted.length-1];
+  const best=sorted.reduce((b,r)=> better(score(r),score(b)) ? r : b, sorted[0]);
+  const trend=sorted.map(r=>({d:r.d, v:score(r)}));
+  const lastIsBest = best.d===last.d && sorted.filter(r=>r.d===last.d).length>0;
+
+  return {cardio:true, type, name, target, banked, runs:g.runs, step:g.step,
+          toGo:Math.max(0,g.runs-banked), tightened, goal:g,
+          lastDate:last.d, last, best, bestScore:score(best), lastScore:score(last),
+          sessions:sorted.length,
+          totalKm:sorted.reduce((t,r)=>t+(r.km||0),0),
+          fresh:lastIsBest && sorted.length>1, trend};
+}
+
 /* ---------- state ---------- */
 let D=load();
 if(!D||!D.entries){ D={v:DATA_VERSION,entries:SEED.entries.map(e=>Object.assign({id:uid()},e)),
-  timeEntries:SEED.timeEntries,bank:SEED.bank,bodyweight:[],settings:Object.assign({},DEFAULTS)}; save(); }
+  timeEntries:SEED.timeEntries,bank:SEED.bank,bodyweight:[],cardio:[],settings:Object.assign({},DEFAULTS)}; save(); }
 D.bodyweight = D.bodyweight || [];
+D.cardio     = D.cardio || [];
 D.settings   = Object.assign({}, DEFAULTS, D.settings || {});
 const S={tab:"today",filter:"All",expanded:null,picking:false,q:"",draft:{},editing:false,noting:null,bwEdit:false};
 function muscleGroups(){
@@ -381,6 +454,29 @@ function blank(){
   return {isNew:true,complete:false,lastDate:todayISO(),weight:0,G:100,N:10,M:10,
           sets:0,short:0,list:[],toGo:10,best:{n:0,when:null},lastWeights:[],best1rm:0,trend:[]};
 }
+function cardioBlank(name){
+  const g=cardioGoal(name);
+  return {cardio:true, isNew:true, type:cardioType(name), name, target:0, banked:0,
+          runs:g.runs, step:g.step, toGo:g.runs, tightened:0, goal:g,
+          lastDate:todayISO(), last:null, best:null, bestScore:0, lastScore:0,
+          sessions:0, totalKm:0, fresh:false, trend:[]};
+}
+function realCardio(rows){ return rows.filter(r=>!r.placeholder && r.secs>0); }
+function cardioStats(){
+  const by=new Map();
+  for(const r of (D.cardio||[])){ if(!by.has(r.e)) by.set(r.e,[]); by.get(r.e).push(r); }
+  return [...by.entries()].map(([name,rows])=>{
+    const real=realCardio(rows);
+    return {name, muscle:(rows[0].m||"Cardio"),
+            a: real.length?analyseCardio(real,name):cardioBlank(name), n:real.length};
+  }).sort((a,b)=>a.a.lastDate<b.a.lastDate?1:a.a.lastDate>b.a.lastDate?-1:a.name.localeCompare(b.name));
+}
+function allStats(){
+  return [...stats(),...cardioStats()]
+    .sort((a,b)=>a.a.lastDate<b.a.lastDate?1:a.a.lastDate>b.a.lastDate?-1:a.name.localeCompare(b.name));
+}
+function todayCardio(){ const t=todayISO(); return (D.cardio||[]).filter(r=>r.d===t); }
+
 function stats(){
   const by=new Map();
   for(const e of D.entries){ if(!by.has(e.e)) by.set(e.e,[]); by.get(e.e).push(e); }
@@ -439,6 +535,13 @@ let tt; function toast(m){ $("#toast").innerHTML='<div class="toast">'+esc(m)+'<
 
 /* ---------- fragments ---------- */
 function tallyHTML(a){
+  if(a.cardio){
+    const n=a.runs, cols=Math.min(10,Math.max(3,n));
+    let o='<div class="grid" style="grid-template-columns:repeat('+cols+',1fr)" '
+      +'aria-label="'+a.banked+' of '+n+' efforts at target">';
+    for(let i=0;i<n;i++) o+='<i data-s="'+(i<a.banked?(a.fresh?"done":"full"):"")+'"></i>';
+    return o+"</div>";
+  }
   if(a.bw){
     const cells=a.target, cols=cells>20?12:10;
     let o='<div class="tally" data-cols="'+cols+'" aria-label="Best set '+a.lastBest+' of '+a.target+'">';
@@ -461,7 +564,10 @@ function tallyHTML(a){
   return o+"</div>";
 }
 function miniHTML(a){
-  let o='<div class="mini">', pct = a.bw ? a.lastBest/a.target : Math.min(a.sets||0,a.N||10)/(a.N||10);
+  let o='<div class="mini">',
+    pct = a.cardio ? a.banked/a.runs
+        : a.bw ? a.lastBest/a.target
+        : Math.min(a.sets||0,a.N||10)/(a.N||10);
   const full=Math.floor(pct*10), part=(pct*10)-full>0.05;
   for(let i=0;i<10;i++) o+='<i data-s="'+(i<full?"1":(i===full&&part?"p":""))+'"></i>';
   return o+"</div>";
@@ -483,6 +589,12 @@ function sparkHTML(trend){
 
 /* headline number + unit for a card */
 function head(a){
+  if(a.cardio){
+    if(a.isNew) return {n:"—", u:"first session"};
+    return a.type==="hold"
+      ? {n:fmtSecs(a.target), u:(a.fresh?"new best · hold":"target · hold")}
+      : {n:fmtSecs(a.target), u:(a.fresh?"new best · min/km":"target · min/km")};
+  }
   if(a.isNew) return {n:"—", u:"first session"};
   if(a.bw) return {n:a.pb, u:(a.fresh?"new best · reps":"best set · reps")};
   if(a.complete) return {n:nice(Math.abs(a.weight)), u:(a.weight<0?"cleared · kg assist":"cleared · kg")};
@@ -490,6 +602,12 @@ function head(a){
   return {n:nice(Math.abs(a.weight)), u:(a.weight<0?"working · kg assist":"working · kg")};
 }
 function goalLine(a){
+  if(a.cardio){
+    if(a.isNew) return '<span>no history yet</span><span class="go">Log your first one</span>';
+    const unit=a.type==="hold"?"hold":"run";
+    return '<span><b>'+a.banked+'</b> of '+a.runs+' '+unit+(a.runs===1?'':'s')+' held</span>'
+      +'<span class="go">'+(a.toGo?a.toGo+' to go':'Target tightens')+'</span>';
+  }
   if(a.isNew) return '<span>no history yet</span><span class="go">Log your first set</span>';
   if(a.bw) return a.fresh
     ? '<span>up from <b>'+a.prevPB+'</b></span><span class="go">Beat '+a.target+' next</span>'
@@ -519,6 +637,8 @@ function draftFor(s){
 function viewToday(){
   const st=stats(), te=todayEntries();
   const active=te.map(e=>st.find(s=>s.name===e.e)).filter(Boolean);
+  const cst=cardioStats(), tc=todayCardio();
+  const activeCardio=[...new Set(tc.map(r=>r.e))].map(n=>cst.find(x=>x.name===n)).filter(Boolean);
   const sets=te.reduce((t,e)=>t+e.sets.length,0);
   const vol=te.reduce((t,e)=>t+e.sets.reduce((u,s)=>u+Math.abs(s.w)*s.r,0),0);
 
@@ -527,9 +647,10 @@ function viewToday(){
                  : ' · nothing logged yet')
     + '</div></div><div class="wrap">' + bwStripHTML();
 
-  if(!active.length){
+  if(!active.length && !activeCardio.length){
     h+='<div class="empty">Add the first exercise of your session and log straight into it.</div>';
   }
+  for(const s of activeCardio) h+=cardioCardHTML(s,tc);
   for(const s of active){
     const a=s.a, hd=head(a), d=draftFor(s), i=esc(s.name);
     const entry=te.find(e=>e.e===s.name);
@@ -559,6 +680,76 @@ function viewToday(){
       +'</div>';
   }
   h+='<button class="'+(active.length?'ghost':'solid')+'" data-act="pick">+ Add exercise</button>';
+  return h+'</div>';
+}
+function cardioCardHTML(s,tc){
+  const a=s.a, i=esc(s.name), id=slug(s.name);
+  const mine=realCardio(tc.filter(r=>r.e===s.name));
+  const hd=head(a);
+  const prev=realCardio((D.cardio||[]).filter(r=>r.e===s.name&&r.d<todayISO())).sort((x,y)=>x.d<y.d?1:-1)[0];
+  const d=S.draft[s.name]||{};
+  const hold=a.type==="hold";
+
+  let h='<div class="card" data-done="'+(a.fresh?1:0)+'">'
+    +'<div class="chd"><div class="l"><div class="mg">'+esc(s.muscle)+' · '+(hold?'hold':'time-based')+'</div>'
+    +'<div class="nm">'+i+'</div></div>'
+    +'<div class="r"><span class="n">'+hd.n+'</span><span class="u">'+hd.u+'</span></div></div>'
+    + tallyHTML(a)
+    +'<div class="goal">'+goalLine(a)+'</div>';
+
+  if(a.best){
+    h+='<div class="last"><b>Best · '+(hold?fmtSecs(a.bestScore):fmtPace(a.bestScore))
+      +' on '+fmtDate(a.best.d)+'</b>';
+    if(prev) h+='<br>Last time '+fmtSecs(prev.secs)+(prev.km?' over '+nice(prev.km)+' km · '+fmtPace(prev.secs/prev.km):'');
+    h+='</div>';
+  } else {
+    h+='<div class="last">First one. Whatever you log sets the target.</div>';
+  }
+
+  if(mine.length){
+    h+='<div class="sets">'+mine.map((r,k)=>'<div class="set"><span class="i">'+pad(k+1)+'</span>'
+      +'<span class="v">'+(r.km?nice(r.km)+' km · ':'')+fmtSecs(r.secs)
+      +(r.km?' <em>· '+fmtPace(r.secs/r.km)+' · '+nice(kmh(r.km,r.secs))+' km/h</em>':'')+'</span>'
+      +'<button data-act="cundo" data-v="'+i+'" data-k="'+r.id+'">Undo</button></div>').join("")+'</div>';
+  }
+
+  const km='<div class="st"><button data-act="cbump" data-v="'+i+'" data-f="km" data-d="-1">−</button>'
+    +'<input id="km_'+id+'" inputmode="decimal" value="'+esc(d.km||"")+'" data-act="cedit" data-v="'+i+'" data-f="km" aria-label="Distance in km">'
+    +'<button data-act="cbump" data-v="'+i+'" data-f="km" data-d="1">+</button></div>';
+  const mn='<div class="st"><button data-act="cbump" data-v="'+i+'" data-f="mn" data-d="-1">−</button>'
+    +'<input id="mn_'+id+'" inputmode="numeric" value="'+esc(d.mn||"")+'" data-act="cedit" data-v="'+i+'" data-f="mn" aria-label="Minutes">'
+    +'<button data-act="cbump" data-v="'+i+'" data-f="mn" data-d="1">+</button></div>';
+  const sc='<div class="st"><button data-act="cbump" data-v="'+i+'" data-f="sc" data-d="-1">−</button>'
+    +'<input id="sc_'+id+'" inputmode="numeric" value="'+esc(d.sc||"")+'" data-act="cedit" data-v="'+i+'" data-f="sc" aria-label="Seconds">'
+    +'<button data-act="cbump" data-v="'+i+'" data-f="sc" data-d="1">+</button></div>';
+
+  h+='<div class="entry">'+(hold?"":km)+mn+sc+'</div>'
+    +'<div class="stl">'+(hold?"":'<span>km</span>')+'<span>min</span><span>sec</span></div>';
+
+  if(prev && !(d.mn||d.sc)){
+    h+='<button class="usebtn" data-act="cuse" data-v="'+i+'">'
+      +(hold?'Last hold '+fmtSecs(prev.secs):'Last run '+nice(prev.km)+' km in '+fmtSecs(prev.secs))
+      +' · tap to fill</button>';
+  }
+  h+='<button class="add" data-act="cadd" data-v="'+i+'">+ Log '+(hold?'hold':'run')+'</button>';
+
+  h+='<div class="foot"><button data-act="expand" data-v="'+i+'">'+(S.expanded===s.name?"Hide detail":"Detail")+'</button>'
+    +'<button data-act="cdrop" data-v="'+i+'">Remove from today</button></div>';
+  if(S.expanded===s.name) h+=cardioDetailHTML(s);
+  return h+'</div>';
+}
+function cardioDetailHTML(s){
+  const a=s.a, hold=a.type==="hold";
+  if(a.isNew) return '<div class="detail"><div class="note">Nothing logged yet. Your first effort sets the target.</div></div>';
+  let h='<div class="detail">'+sparkHTML(a.trend)
+    +'<div class="note" style="margin-bottom:9px">'+(hold?'Hold time':'Pace')+' each session · '
+    +(hold?'higher is better':'lower is better')+'</div>'
+    +'<div class="row"><span>Best '+(hold?'hold':'pace')+'</span><b>'+(hold?fmtSecs(a.bestScore):fmtPace(a.bestScore))+'</b></div>'
+    +'<div class="row"><span>Current target</span><b>'+(hold?fmtSecs(a.target):fmtPace(a.target))+'</b></div>'
+    +'<div class="row"><span>Sessions</span><b>'+a.sessions+'</b></div>';
+  if(!hold) h+='<div class="row"><span>Total distance</span><b>'+nice(a.totalKm)+' km</b></div>'
+    +'<div class="row"><span>Last run</span><b>'+nice(a.last.km)+' km in '+fmtSecs(a.last.secs)+'</b></div>';
+  h+='<div class="row"><span>Target tightened</span><b>'+a.tightened+' time'+(a.tightened===1?'':'s')+'</b></div>';
   return h+'</div>';
 }
 function lastTimeHTML(name,a){
@@ -652,11 +843,21 @@ function detailHTML(s){
 
 /* ---------- progress ---------- */
 function viewProgress(){
-  const st=stats();
+  const st=allStats();
   const groups=["All",...new Set(st.map(s=>s.muscle))];
   const shown=S.filter==="All"?st:st.filter(s=>s.muscle===S.filter);
+  const runs=realCardio(D.cardio||[]).filter(r=>r.km>0);
+  const since=n=>{const d=new Date(); d.setDate(d.getDate()-n);
+    return runs.filter(r=>new Date(r.d)>=d).reduce((t,r)=>t+r.km,0);};
+  const km7=since(7), km30=since(30);
   const bwlog=[...(D.bodyweight||[])].sort((a,b)=>a.d<b.d?-1:1);
   let h='<div class="top"><h2>Progress</h2><div class="sub">'+st.length+' exercises tracked</div></div>'
+    + (runs.length
+       ? '<div class="wrap"><div class="bwrow"><div class="l"><div class="k">Distance</div>'
+         +'<div class="v">'+nice(Math.round(km7*10)/10)+' <em>km this week</em></div></div>'
+         +'<div class="l" style="text-align:right"><div class="k">Last 30 days</div>'
+         +'<div class="v">'+nice(Math.round(km30*10)/10)+' <em>km</em></div></div></div></div>'
+       : "")
     + (bwlog.length>1
        ? '<div class="wrap"><div class="card" style="padding:13px 15px"><div class="chd" style="padding:0">'
          +'<div class="l"><div class="mg">Bodyweight</div><div class="nm">'+nice(bwlog[bwlog.length-1].kg)+' kg</div></div>'
@@ -668,14 +869,18 @@ function viewProgress(){
     +'<div class="wrap">';
   for(const s of shown){
     const a=s.a, i=esc(s.name), open=S.expanded===s.name;
-    const done=a.bw?a.fresh:a.complete;
+    const done=(a.cardio||a.bw)?a.fresh:a.complete;
     h+='<div class="prow" data-done="'+(done?1:0)+'">'
       +'<button style="width:100%;text-align:left" data-act="expand" data-v="'+i+'">'
       +'<span class="a"><span class="nm">'+i+'</span>'
-      +'<span class="w">'+(a.bw?a.pb+'<span style="font-size:11px"> reps</span>':nice(Math.abs(a.weight))+'<span style="font-size:11px"> kg</span>')+'</span></span>'
+      +'<span class="w">'+(a.cardio?(a.isNew?'—':fmtSecs(a.target))+'<span style="font-size:11px">'+(a.type==="hold"?' hold':' /km')+'</span>'
+   :a.bw?a.pb+'<span style="font-size:11px"> reps</span>'
+   :nice(Math.abs(a.weight))+'<span style="font-size:11px"> kg</span>')+'</span></span>'
       +'<span class="b">'+miniHTML(a)
-      +'<span class="c">'+(a.isNew?"new":(a.bw?(done?"best":a.lastBest+"/"+a.target):(a.complete?"cleared":(a.sets||0)+"/"+(a.N||10)+" sets")))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
-      + (open?detailHTML(s)
+      +'<span class="c">'+(a.isNew?"new":(a.cardio?a.banked+"/"+a.runs+" at target"
+   :a.bw?(done?"best":a.lastBest+"/"+a.target)
+   :(a.complete?"cleared":(a.sets||0)+"/"+(a.N||10)+" sets")))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
+      + (open?(s.a.cardio?cardioDetailHTML(s):detailHTML(s))
           +'<button class="solid" data-act="totoday" data-v="'+i+'" style="margin-top:12px">Add to today</button>'
           +'<button class="solid" data-alt="1" data-act="wipe" data-v="'+i+'" style="margin-top:8px">Delete exercise</button>':"")
       +'</div>';
@@ -688,6 +893,7 @@ function viewProgress(){
 function viewHistory(){
   const by=new Map();
   for(const e of D.entries){ if(!by.has(e.d)) by.set(e.d,[]); by.get(e.d).push(e); }
+  for(const r of realCardio(D.cardio||[])){ if(!by.has(r.d)) by.set(r.d,[]); }
   const days=[...by.entries()].sort((a,b)=>a[0]<b[0]?1:-1);
   let h='<div class="top"><h2>History</h2><div class="sub">'+days.length+' sessions</div></div><div class="wrap">';
   for(const [d,es] of days){
@@ -696,6 +902,10 @@ function viewHistory(){
       +e.sets.map(s=>(Math.abs(s.w)<=1?s.r+"":nice(Math.abs(s.w))+"×"+s.r)).join("&nbsp;&nbsp; ")+'</div>'
       +(e.note?'<div class="note" style="margin-top:5px;color:var(--mute)">'+esc(e.note)+'</div>':"")
       +'</div>';
+    for(const r of realCardio((D.cardio||[]).filter(x=>x.d===d)))
+      h+='<div class="ex"><div class="n">'+esc(r.e)+'</div><div class="s">'
+        +(r.km?nice(r.km)+' km · ':'')+fmtSecs(r.secs)
+        +(r.km?' · '+fmtPace(r.secs/r.km):'')+'</div></div>';
     const bw=(D.bodyweight||[]).find(x=>x.d===d);
     if(bw) h+='<div class="note" style="margin-top:10px">Bodyweight '+nice(bw.kg)+' kg</div>';
     h+='</div>';
@@ -734,6 +944,11 @@ function viewData(){
     + sRow("Rest timer", Number(g.rest)?mmss(Number(g.rest)):"Off", "setrest", "Starts automatically after each set.")
     +(overrides.length?'<div class="note" style="margin:12px 0 0">'+overrides.length+' exercise'+(overrides.length>1?"s have":" has")+' a custom goal. Change or clear it from that exercise under Progress.</div>':"")
 
+    +'<div class="eyebrow" style="margin:26px 0 9px">Running &amp; holds</div>'
+    + sRow("Efforts at target", g.cardioRuns, "setruns", "Hit the target this many times before it tightens.")
+    + sRow("Pace step", fmtSecs(g.paceStep)+" /km", "setpace", "How much faster the target gets each time.")
+    + sRow("Hold step", fmtSecs(g.holdStep), "sethold", "How much longer a hold target gets.")
+
     +'<div class="eyebrow" style="margin:26px 0 9px">Your data</div>'
     +'<button class="solid" data-act="csv">Export CSV for Excel</button>'
     +'<div class="note" style="margin:9px 0 16px">Same columns as your workbook, plus bodyweight and notes.</div>'
@@ -765,15 +980,21 @@ function renderSheet(){
   const el=$("#sheet");
   if(!S.picking){ el.innerHTML=""; return; }
   const q=S.q.toLowerCase(), st=stats();
-  const recent=st.filter(x=>x.n>0).slice(0,6).map(x=>x.name);
-  const all=D.bank.filter(b=>b.c==="Strength"&&b.n.toLowerCase().includes(q));
+  const recent=allStats().filter(x=>x.n>0).slice(0,6).map(x=>x.name);
+  const all=D.bank.filter(b=>(b.c==="Strength"||b.c==="Time-Based")&&b.n.toLowerCase().includes(q));
   const isNew=S.q.trim()&&!D.bank.some(b=>b.n.toLowerCase()===S.q.trim().toLowerCase());
   const logged=n=>D.entries.some(e=>e.e===n&&e.sets.length);
   const item=(n,m)=> S.editing
     ? '<div class="pick" style="display:flex;align-items:center;gap:10px">'
       +'<div style="flex:1;min-width:0"><div class="n">'+esc(n)+'</div><div class="m">'+esc(m)+(logged(n)?" · has history":"")+'</div></div>'
       +'<button data-act="wipe" data-v="'+esc(n)+'" style="color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px">Delete</button></div>'
-    : '<button class="pick" data-act="pickone" data-v="'+esc(n)+'" data-m="'+esc(m)+'"><div class="n">'+esc(n)+'</div><div class="m">'+esc(m)+'</div></button>';
+    : (function(){
+        const b=D.bank.find(x=>x.n===n)||{};
+        return '<button class="pick" data-act="pickone" data-v="'+esc(n)+'" data-m="'+esc(m)+'"'
+          +' data-c="'+esc(b.c||"Strength")+'" data-pt="'+esc(b.pt||"")+'">'
+          +'<div class="n">'+esc(n)+'</div><div class="m">'+esc(m)
+          +(b.c==="Time-Based"?' · '+(b.pt==="Hold Time"?"hold":"timed"):"")+'</div></button>';
+      })();
 
   el.innerHTML='<div class="sheet-bg" data-act="close"></div><div class="sheet" role="dialog" aria-label="Add exercise">'
     +'<div class="sheet-h"><div class="nm">'+(S.editing?"Delete exercises":"Add exercise")+'</div>'
@@ -786,7 +1007,7 @@ function renderSheet(){
         +muscleGroups().map(g=>'<button class="chip" data-act="newex" data-v="'+esc(S.q.trim())+'" data-m="'+esc(g)+'">'+esc(g)+'</button>').join("")
         +'</div><div class="note" style="padding:8px 16px 0">Creates “'+esc(S.q.trim())+'” and adds it to today.</div>'
       : "")
-    +(!q&&!S.editing&&recent.length?'<div class="pgrp">Recent</div>'+recent.map(n=>item(n,(st.find(x=>x.name===n)||{}).muscle||"Other")).join(""):"")
+    +(!q&&!S.editing&&recent.length?'<div class="pgrp">Recent</div>'+recent.map(n=>item(n,(allStats().find(x=>x.name===n)||{}).muscle||"Other")).join(""):"")
     +'<div class="pgrp">'+(q?"Matching":"All exercises")+'</div>'
     +(all.length?all.map(b=>item(b.n,b.m)).join(""):'<div class="note" style="padding:4px 16px">Nothing matches.</div>')
     +'<div style="height:26px"></div></div>';
@@ -831,6 +1052,13 @@ function exportCSV(){
     r.push(e.sets.reduce((t,s)=>t+s.w*s.r,0),nice(Math.max(...e.sets.map(s=>epley(s.w,s.r)))),
            bw?bw.kg:"", e.note||"");
     return r; });
+  const cardio=realCardio(D.cardio||[]).sort((a,b)=>a.d<b.d?-1:1);
+  if(cardio.length){
+    rows.push([]);
+    rows.push(["Date","Exercise","Muscle Group","Distance KM","Time","Time Seconds","Pace /km","Speed km/h"]);
+    for(const r of cardio) rows.push([r.d,r.e,r.m||"",r.km||"",fmtSecs(r.secs),Math.round(r.secs),
+      r.km?fmtSecs(r.secs/r.km):"", r.km?nice(Math.round(kmh(r.km,r.secs)*100)/100):""]);
+  }
   download("gym-log-"+todayISO()+".csv",
     [head,...rows].map(r=>r.map(c=>/[",\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(",")).join("\n"),
     "text/csv");
@@ -870,12 +1098,14 @@ document.addEventListener("click",ev=>{
     delete S.draft[v]; save(); render(); toast("Removed from today");
   }
   else if(act==="wipe"){
-    const n=D.entries.filter(e=>e.e===v&&e.sets.length).length;
+    const n=D.entries.filter(e=>e.e===v&&e.sets.length).length
+          + realCardio((D.cardio||[]).filter(r=>r.e===v)).length;
     const msg = n
       ? "Delete "+v+" completely? This erases "+n+" session"+(n>1?"s":"")+" of history and can't be undone."
       : "Remove "+v+" from your exercise list?";
     if(!confirm(msg)) return;
     D.entries=D.entries.filter(e=>e.e!==v);
+    D.cardio=(D.cardio||[]).filter(r=>r.e!==v);
     D.bank=D.bank.filter(b=>b.n!==v);
     delete S.draft[v];
     if(S.expanded===v) S.expanded=null;
@@ -884,10 +1114,19 @@ document.addEventListener("click",ev=>{
   else if(act==="pickone"){
     S.picking=false; S.editing=false;
     const tI=todayISO();
-    if(!D.entries.some(e=>e.d===tI&&e.e===v)){
-      if(!D.bank.some(b=>b.n===v)) D.bank.push({n:v,m:t.dataset.m,c:"Strength",pt:"Strength Score"});
-      D.entries.push({id:uid(),d:tI,e:v,m:t.dataset.m,sets:[]});
-      save();
+    if(t.dataset.c==="Time-Based" || isCardioName(v)){
+      if(!D.bank.some(b=>b.n===v)) D.bank.push({n:v,m:t.dataset.m,c:"Time-Based",pt:t.dataset.pt||"Speed"});
+      if(!(D.cardio||[]).some(r=>r.d===tI&&r.e===v)){
+        /* a placeholder so the card appears before anything is logged */
+        D.cardio.push({id:uid(),d:tI,e:v,m:t.dataset.m,type:cardioType(v),km:0,secs:0,placeholder:true});
+        save();
+      }
+    } else {
+      if(!D.entries.some(e=>e.d===tI&&e.e===v)){
+        if(!D.bank.some(b=>b.n===v)) D.bank.push({n:v,m:t.dataset.m,c:"Strength",pt:"Strength Score"});
+        D.entries.push({id:uid(),d:tI,e:v,m:t.dataset.m,sets:[]});
+        save();
+      }
     }
     S.tab="today"; render();
   }
@@ -914,6 +1153,66 @@ document.addEventListener("click",ev=>{
     const i=D.entries.findIndex(x=>x.d===tI&&x.e===v);
     if(i<0) return;
     D.entries[i].sets.splice(k,1); save(); render();
+  }
+  else if(act==="cbump"){
+    const f=t.dataset.f, dir=Number(t.dataset.d), inp=$("#"+f+"_"+slug(v));
+    const step = f==="km" ? 0.5 : f==="mn" ? 1 : 5;
+    let n=parseFloat(inp.value); if(isNaN(n)) n=0;
+    n=Math.max(0,Math.round((n+dir*step)*100)/100);
+    inp.value=f==="km"?nice(n):String(n);
+    S.draft[v]=S.draft[v]||{}; S.draft[v][f]=inp.value;
+  }
+  else if(act==="cuse"){
+    const prev=(D.cardio||[]).filter(r=>r.e===v&&r.d<todayISO()).sort((x,y)=>x.d<y.d?1:-1)[0];
+    if(!prev) return;
+    S.draft[v]={km:prev.km?nice(prev.km):"", mn:String(Math.floor(prev.secs/60)), sc:String(Math.round(prev.secs%60))};
+    render();
+  }
+  else if(act==="cadd"){
+    const id=slug(v), hold=cardioType(v)==="hold";
+    const kmEl=$("#km_"+id), mn=parseInt($("#mn_"+id).value,10)||0, sc=parseInt($("#sc_"+id).value,10)||0;
+    const km=hold?0:parseFloat(kmEl.value);
+    const secs=mn*60+sc;
+    if(!secs){ toast("Enter a time"); return; }
+    if(!hold && (isNaN(km)||km<=0)){ toast("Enter a distance"); return; }
+    const b=D.bank.find(x=>x.n===v)||{m:"Cardio"};
+    const before=realCardio((D.cardio||[]).filter(r=>r.e===v));
+    D.cardio=D.cardio.filter(r=>!(r.placeholder && r.e===v));
+    D.cardio.push({id:uid(),d:todayISO(),e:v,m:b.m||"Cardio",type:hold?"hold":"speed",km:hold?0:km,secs});
+    S.draft[v]={km:hold?"":nice(km), mn:String(mn), sc:String(sc)};
+    let msg = hold ? fmtSecs(secs)+" hold" : nice(km)+" km · "+fmtPace(secs/km);
+    if(before.length){
+      const a=analyseCardio(D.cardio.filter(r=>r.e===v),v);
+      if(a.fresh) msg = hold ? "New best hold · "+fmtSecs(secs) : "New best pace · "+fmtPace(secs/km);
+    }
+    save(); render(); toast(msg);
+  }
+  else if(act==="cundo"){
+    D.cardio=D.cardio.filter(r=>r.id!==t.dataset.k);
+    save(); render();
+  }
+  else if(act==="cdrop"){
+    const day=todayISO();
+    const n=(D.cardio||[]).filter(r=>r.d===day&&r.e===v).length;
+    if(n && !confirm("Remove "+v+" from today? "+n+" logged effort"+(n>1?"s":"")+" will be deleted.")) return;
+    D.cardio=D.cardio.filter(r=>!(r.d===day&&r.e===v));
+    delete S.draft[v]; save(); render(); toast("Removed from today");
+  }
+  else if(act==="setruns"){
+    D.settings.cardioRuns=Math.min(20,Math.max(1,(D.settings.cardioRuns||3)+Number(t.dataset.d)));
+    save(); render();
+  }
+  else if(act==="setpace"){
+    const steps=[5,10,15,20,30];
+    let i=steps.indexOf(Number(D.settings.paceStep)||10); if(i<0) i=1;
+    D.settings.paceStep=steps[Math.min(steps.length-1,Math.max(0,i+Number(t.dataset.d)))];
+    save(); render();
+  }
+  else if(act==="sethold"){
+    const steps=[5,10,15,20,30,60];
+    let i=steps.indexOf(Number(D.settings.holdStep)||10); if(i<0) i=1;
+    D.settings.holdStep=steps[Math.min(steps.length-1,Math.max(0,i+Number(t.dataset.d)))];
+    save(); render();
   }
   else if(act==="restclose"){ stopRest(); }
   else if(act==="restadd"){ restEnd+=30000; restTot+=30; restDone=0; paintRest(); }
@@ -987,6 +1286,11 @@ document.addEventListener("input",ev=>{
     const day=todayISO();
     const e=D.entries.find(x=>x.d===day&&x.e===el.dataset.v);
     if(e){ e.note=el.value; save(); }
+    return;
+  }
+  if(el.dataset&&el.dataset.act==="cedit"){
+    S.draft[el.dataset.v]=S.draft[el.dataset.v]||{};
+    S.draft[el.dataset.v][el.dataset.f]=el.value;
     return;
   }
   if(el.dataset&&el.dataset.act==="edit"){
