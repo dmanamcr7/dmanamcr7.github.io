@@ -212,7 +212,7 @@ input{font-family:inherit}
 "use strict";
 const SEED = {"entries":[],"timeEntries":[],"bank":[{"n":"Iso-lateral Decline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Incline Bench Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push-ups","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Incline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push Up","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Assisted Pull-up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Basic Back Extension","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Barbell Row","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Iso-lateral pull","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Pull Up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Deadlift","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Dumbbell Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Lateral Raise","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Face Pull","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength ground base squat/lunge both legs","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer strength ground base squat/lunge single leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Leg extension Single Leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Adduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Abduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Leg Extension","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Calf Raise","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Bar)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Dumbbell)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Tricep Pulldown","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Skull Crusher","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Dips","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Cable Crunch","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Leg Raises","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Russian Twist","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Hanging Knee Raise","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Kettlebell Swing","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Farmer Carry","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Clean and Press","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Run 1km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 3km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 5km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 10km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Bike","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Rowing Machine","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Side Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Hollow Hold","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Wall Sit","m":"Legs","c":"Time-Based","pt":"Hold Time"}]};
 const KEY = "gym:v1";
-const APP_VERSION = "5.0";   // bumped whenever the app changes
+const APP_VERSION = "5.1";   // bumped whenever the app changes
 const DATA_VERSION = 3;      // bumped only when the shape of stored data changes
 const DEFAULTS = {rest:90, goalSets:10, goalReps:10, step:2.5, perEx:{}};
 
@@ -542,14 +542,15 @@ function bwStripHTML(){
 function entryHTML(s,d,a){
   const i=esc(s.name), g=suggestFor(s);
   const wf='<div class="st"><button data-act="bump" data-v="'+i+'" data-f="w" data-d="-1" aria-label="Less weight">−</button>'
-    +'<input id="w_'+slug(s.name)+'" inputmode="decimal" value="'+esc(d.w)+'" placeholder="'+nice(g.w)+'" data-act="edit" data-v="'+i+'" data-f="w" aria-label="Weight">'
+    +'<input id="w_'+slug(s.name)+'" inputmode="decimal" value="'+esc(d.w)+'" data-act="edit" data-v="'+i+'" data-f="w" aria-label="Weight">'
     +'<button data-act="bump" data-v="'+i+'" data-f="w" data-d="1" aria-label="More weight">+</button></div>';
   const rf='<div class="st"><button data-act="bump" data-v="'+i+'" data-f="r" data-d="-1" aria-label="Fewer reps">−</button>'
-    +'<input id="r_'+slug(s.name)+'" inputmode="numeric" value="'+esc(d.r)+'" placeholder="'+g.r+'" data-act="edit" data-v="'+i+'" data-f="r" aria-label="Reps">'
+    +'<input id="r_'+slug(s.name)+'" inputmode="numeric" value="'+esc(d.r)+'" data-act="edit" data-v="'+i+'" data-f="r" aria-label="Reps">'
     +'<button data-act="bump" data-v="'+i+'" data-f="r" data-d="1" aria-label="More reps">+</button></div>';
-  const label = a.isNew ? "" :
-    (a.bw ? 'Best set '+g.r+' reps' :
-     (a.complete?'Suggested next ':'Working weight ')+nice(Math.abs(g.w))+' kg'+(g.w<0?' assist':'')+' × '+g.r);
+  const blank = String(d.r).trim()==="" && (a.bw || String(d.w).trim()==="");
+  const label = (a.isNew || !blank) ? "" :
+    (a.bw ? 'Best set '+g.r+' reps'
+          : (a.complete?'Suggested next ':'Working weight ')+nice(Math.abs(g.w))+' kg'+(g.w<0?' assist':'')+' × '+g.r);
   return '<div class="entry">'+(a.bw?"":wf)+rf+'</div>'
     +'<div class="stl">'+(a.bw?"":'<span>kg</span>')+'<span>reps</span></div>'
     + (label?'<button class="usebtn" data-act="use" data-v="'+i+'">'+label+' · tap to fill</button>':"")
@@ -739,7 +740,7 @@ function addSet(name){
   if(!bw && wi.value.trim()===""){ toast("Enter a weight"); return; }
   if(ri.value.trim()===""){ toast("Enter your reps"); return; }
   if(isNaN(w)||isNaN(r)||r<=0){ toast("Check the numbers"); return; }
-  delete S.draft[name];
+  S.draft[name]={w:bw?"":nice(w), r:String(r)};   // stays put for the next set
   const t=todayISO();
   const pb=priorBest(name,t);
   let e=D.entries.find(x=>x.d===t&&x.e===name);
