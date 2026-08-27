@@ -54,6 +54,7 @@ input{font-family:inherit}
 
 .tally{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:13px 15px 0}
 .tally[data-cols="12"]{grid-template-columns:repeat(12,1fr)}
+.tally[data-cols="20"]{grid-template-columns:repeat(20,1fr);gap:2px}
 .tally i{aspect-ratio:1;border:1px solid var(--line2);border-radius:2px}
 .tally i[data-s="old"]{background:var(--amber-lo);border-color:var(--amber-lo)}
 .tally i[data-s="new"]{background:var(--amber);border-color:var(--amber)}
@@ -168,6 +169,9 @@ input{font-family:inherit}
 .rest button{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
   color:var(--mute);padding:8px 10px;border:1px solid var(--line2);border-radius:7px}
 
+.usebtn{display:block;width:calc(100% - 30px);margin:10px 15px 0;padding:9px;border:1px dashed var(--line2);
+  border-radius:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.usebtn:active{border-color:var(--amber);color:var(--amber)}
 .pr{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink);background:var(--sage);padding:2px 6px;border-radius:99px;margin-left:7px;font-weight:600}
 .last{font-family:var(--mono);font-size:10.5px;color:var(--dim);padding:11px 15px 0;line-height:1.6}
@@ -175,6 +179,14 @@ input{font-family:inherit}
 .notebox{margin:11px 15px 0;width:calc(100% - 30px);background:var(--slab2);border:1px solid var(--line2);
   border-radius:8px;color:var(--bone);font-family:var(--body);font-size:13.5px;padding:11px;outline:none;resize:vertical;min-height:62px}
 .notebox:focus{border-color:var(--amber)}
+.srow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.srow .sl{flex:1;min-width:0}
+.srow .sl .k{font-size:13.5px}
+.srow .sl .sn{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:4px;line-height:1.6}
+.sst{display:flex;align-items:center;border:1px solid var(--line2);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.sst button{width:40px;padding:9px 0;font-family:var(--disp);font-size:19px;color:var(--mute);background:var(--slab2)}
+.sst button:active{color:var(--amber)}
+.sst span{min-width:62px;text-align:center;font-family:var(--mono);font-size:13px;padding:0 6px}
 .bwrow{display:flex;align-items:center;gap:11px;background:var(--slab);border:1px solid var(--line);
   border-radius:var(--r);padding:12px 15px;margin-bottom:11px}
 .bwrow .l{flex:1;min-width:0}
@@ -199,10 +211,10 @@ input{font-family:inherit}
 <script>
 "use strict";
 const SEED = {"entries":[],"timeEntries":[],"bank":[{"n":"Iso-lateral Decline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Incline Bench Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push-ups","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Incline Chest Press","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Push Up","m":"Chest","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Assisted Pull-up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Basic Back Extension","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Barbell Row","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Iso-lateral pull","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Pull Up","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Deadlift","m":"Back","c":"Strength","pt":"Strength Score"},{"n":"Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Dumbbell Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Lateral Raise","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Iso-Lateral Shoulder Press","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Face Pull","m":"Shoulders","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength ground base squat/lunge both legs","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer strength ground base squat/lunge single leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hammer Strength Leg extension Single Leg","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Adduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Hip Abduction","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Leg Extension","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Calf Raise","m":"Legs","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Bar)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Bicep Curl (Dumbbell)","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Tricep Pulldown","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Skull Crusher","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Dips","m":"Arms","c":"Strength","pt":"Strength Score"},{"n":"Cable Crunch","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Leg Raises","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Russian Twist","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Hanging Knee Raise","m":"Core","c":"Strength","pt":"Strength Score"},{"n":"Kettlebell Swing","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Farmer Carry","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Clean and Press","m":"Full Body","c":"Strength","pt":"Strength Score"},{"n":"Run 1km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 3km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 5km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Run 10km","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Bike","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Rowing Machine","m":"Cardio","c":"Time-Based","pt":"Speed"},{"n":"Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Side Plank","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Hollow Hold","m":"Core","c":"Time-Based","pt":"Hold Time"},{"n":"Wall Sit","m":"Legs","c":"Time-Based","pt":"Hold Time"}]};
-const GOAL = 100, KEY = "gym:v1";
-const APP_VERSION = "4.0";   // bumped whenever the app changes
-const DATA_VERSION = 2;      // bumped only when the shape of stored data changes
-const DEFAULTS = {rest:90};
+const KEY = "gym:v1";
+const APP_VERSION = "5.0";   // bumped whenever the app changes
+const DATA_VERSION = 3;      // bumped only when the shape of stored data changes
+const DEFAULTS = {rest:90, goalSets:10, goalReps:10, step:2.5, perEx:{}};
 
 /* Brings older saved data up to the current shape. Each step is additive, so a
    log written by any previous version keeps working after an update. */
@@ -213,6 +225,14 @@ function migrate(d){
     d.bodyweight = d.bodyweight || [];        // [{d:'YYYY-MM-DD', kg:Number}]
     d.settings   = Object.assign({}, DEFAULTS, d.settings || {});
     // entries gain an optional .note; absent is fine, nothing to convert
+  }
+  if(from < 3){
+    // the 10x10 rep bank was hard-coded; it becomes a setting anyone can change
+    d.settings = Object.assign({}, DEFAULTS, d.settings || {});
+    if(d.settings.goalSets==null) d.settings.goalSets = 10;
+    if(d.settings.goalReps==null) d.settings.goalReps = 10;
+    if(d.settings.step==null)     d.settings.step = 2.5;
+    d.settings.perEx = d.settings.perEx || {};
   }
   d.v = DATA_VERSION;
   return d;
@@ -243,23 +263,22 @@ const nice=n=>String(Math.round(n*100)/100);
 /* ---------- goal logic ---------- */
 function isBW(es){ const w=es.flatMap(e=>e.sets.map(s=>s.w)); return w.length ? Math.max(...w)<=1 : false; }
 
-function analyse(es){
+function analyse(es,G){
   const sorted=[...es].sort((a,b)=>a.d<b.d?1:-1), lastDate=sorted[0].d;
   const last=sorted.filter(e=>e.d===lastDate);
   const cum=new Map();
   for(const e of es) for(const s of e.sets) cum.set(s.w,(cum.get(s.w)||0)+s.r);
   const lastWeights=[...new Set(last.flatMap(e=>e.sets.map(s=>s.w)))].sort((a,b)=>a-b);
-  const open=lastWeights.filter(w=>(cum.get(w)||0)<GOAL);
+  const open=lastWeights.filter(w=>(cum.get(w)||0)<G);
   const best1rm=Math.max(...es.flatMap(e=>e.sets.map(s=>epley(s.w,s.r))));
   const trend=[...es].sort((a,b)=>a.d<b.d?-1:1).map(e=>({d:e.d,v:Math.max(...e.sets.map(s=>epley(s.w,s.r)))}));
   if(!open.length){
     const w=lastWeights[lastWeights.length-1];
-    return {complete:true,lastDate,weight:w,next:Math.round((w+(w<0?2.5:2.5))*10)/10,
-            banked:GOAL,toGo:0,fromLast:0,lastWeights,cum,best1rm,trend};
+    return {complete:true,lastDate,weight:w,G,banked:G,toGo:0,fromLast:0,lastWeights,cum,best1rm,trend};
   }
   const weight=open[0], banked=cum.get(weight)||0;
   const fromLast=last.reduce((t,e)=>t+e.sets.filter(s=>s.w===weight).reduce((u,s)=>u+s.r,0),0);
-  return {complete:false,lastDate,weight,banked,toGo:GOAL-banked,fromLast,lastWeights,cum,best1rm,trend};
+  return {complete:false,lastDate,weight,G,banked,toGo:G-banked,fromLast,lastWeights,cum,best1rm,trend};
 }
 
 function analyseBW(es){
@@ -272,6 +291,15 @@ function analyseBW(es){
   const fresh=lastBest>=pb&&lastBest>prevPB;
   const totalReps=es.reduce((t,e)=>t+e.sets.reduce((u,s)=>u+s.r,0),0);
   return {bw:true,lastDate,pb,prevPB,lastBest,target:pb+1,fresh,totalReps,trend,sessions:es.length,weight:1};
+}
+
+/* Goal for an exercise: its own override if it has one, otherwise the global
+   setting. Returns the sets x reps breakdown as well as the total to bank. */
+function goalFor(name){
+  const g=D.settings, o=(g.perEx&&g.perEx[name])||null;
+  const sets=(o&&o.sets)||g.goalSets, reps=(o&&o.reps)||g.goalReps;
+  const step=(o&&o.step)||g.step;
+  return {sets,reps,target:Math.max(1,sets*reps),step,custom:!!o};
 }
 
 /* Best marks set BEFORE a given date, so today's sets can be judged against
@@ -311,15 +339,17 @@ function muscleGroups(){
 /* An exercise just added to today's session has no sets yet, so there is
    nothing to analyse — give it a blank slate rather than a broken card. */
 function blank(){
-  return {isNew:true,complete:false,lastDate:todayISO(),weight:10,banked:0,toGo:GOAL,
+  return {isNew:true,complete:false,lastDate:todayISO(),weight:0,G:100,banked:0,toGo:100,
           fromLast:0,lastWeights:[],cum:new Map(),best1rm:0,trend:[]};
 }
 function stats(){
   const by=new Map();
   for(const e of D.entries){ if(!by.has(e.e)) by.set(e.e,[]); by.get(e.e).push(e); }
   return [...by.entries()].map(([name,es])=>{
+    const g=goalFor(name);
     const logged=es.filter(e=>e.sets.length);
-    const a = !logged.length ? blank() : (isBW(logged)?analyseBW(logged):analyse(logged));
+    const a = !logged.length ? Object.assign(blank(),{G:g.target}) : (isBW(logged)?analyseBW(logged):analyse(logged,g.target));
+    a.goal=g;
     return {name,muscle:es[0].m||"Other",a,n:logged.length};
   }).sort((a,b)=>a.a.lastDate<b.a.lastDate?1:a.a.lastDate>b.a.lastDate?-1:a.name.localeCompare(b.name));
 }
@@ -361,7 +391,8 @@ function paintRest(){
   const pct=Math.round(((restTot-left)/restTot)*100);
   el.innerHTML='<div class="rest"><div class="bar"><i style="width:'+pct+'%"></i></div>'
     +'<span class="t">'+mmss(left)+'</span>'
-    +'<button data-act="restadd">+30</button><button data-act="restclose">Skip</button></div>';
+    +'<button data-act="restsub">−30</button><button data-act="restadd">+30</button>'
+    +'<button data-act="restclose">Skip</button></div>';
 }
 
 let tt; function toast(m){ $("#toast").innerHTML='<div class="toast">'+esc(m)+'</div>';
@@ -375,13 +406,15 @@ function tallyHTML(a){
     for(let i=0;i<cells;i++) o+='<i data-s="'+(i<a.lastBest?(a.fresh?"done":"new"):"")+'"'+(i===a.pb-1?' data-pb="1"':'')+'></i>';
     return o+"</div>";
   }
-  const filled=Math.min(a.banked,GOAL), fresh=Math.min(a.fromLast||0,filled), oldN=filled-fresh;
-  let o='<div class="tally" aria-label="'+filled+' of '+GOAL+' reps banked">';
-  for(let i=0;i<GOAL;i++) o+='<i data-s="'+(a.complete?(i<filled?"done":""):(i<oldN?"old":(i<filled?"new":"")))+'"></i>';
+  const G=a.G||100;
+  const cols = G>140 ? 20 : 10;
+  const filled=Math.min(a.banked,G), fresh=Math.min(a.fromLast||0,filled), oldN=filled-fresh;
+  let o='<div class="tally" data-cols="'+cols+'" aria-label="'+filled+' of '+G+' reps banked">';
+  for(let i=0;i<G;i++) o+='<i data-s="'+(a.complete?(i<filled?"done":""):(i<oldN?"old":(i<filled?"new":"")))+'"></i>';
   return o+"</div>";
 }
 function miniHTML(a){
-  let o='<div class="mini">', pct = a.bw ? a.lastBest/a.target : Math.min(a.banked,GOAL)/GOAL;
+  let o='<div class="mini">', pct = a.bw ? a.lastBest/a.target : Math.min(a.banked,a.G||100)/(a.G||100);
   const full=Math.floor(pct*10), part=(pct*10)-full>0.05;
   for(let i=0;i<10;i++) o+='<i data-s="'+(i<full?"1":(i===full&&part?"p":""))+'"></i>';
   return o+"</div>";
@@ -413,17 +446,24 @@ function goalLine(a){
   if(a.bw) return a.fresh
     ? '<span>up from <b>'+a.prevPB+'</b></span><span class="go">Beat '+a.target+' next</span>'
     : '<span>last session <b>'+a.lastBest+'</b></span><span class="go">'+(a.target-a.lastBest)+' more for a best</span>';
+  const G=a.G||100;
   return a.complete
-    ? '<span><b>'+GOAL+'</b> reps banked</span><span class="go">'+(a.weight<0?"Cut the assist":"Go heavier")+'</span>'
-    : '<span><b>'+a.banked+'</b> of '+GOAL+' reps</span><span class="go">'+a.toGo+' to go</span>';
+    ? '<span><b>'+G+'</b> reps banked</span><span class="go">'+(a.weight<0?"Cut the assist":"Go heavier")+'</span>'
+    : '<span><b>'+a.banked+'</b> of '+G+' reps</span><span class="go">'+a.toGo+' to go</span>';
 }
 
 /* ---------- today ---------- */
+/* Suggested values are shown as reference only. The inputs start empty so a set
+   is never logged at a weight that was merely carried over from last time. */
+function suggestFor(s){
+  const a=s.a;
+  if(a.bw) return {w:1, r:a.pb||0};
+  if(a.isNew) return {w:0, r:a.goal.reps};
+  return {w:(a.complete?Math.round((a.weight+a.goal.step)*100)/100:a.weight), r:a.goal.reps};
+}
 function draftFor(s){
   if(S.draft[s.name]) return S.draft[s.name];
-  const a=s.a;
-  const d = a.bw ? {w:1,r:a.pb} : {w:(a.complete?a.next:a.weight), r:10};
-  S.draft[s.name]=d; return d;
+  return {w:"",r:""};
 }
 function viewToday(){
   const st=stats(), te=todayEntries();
@@ -500,15 +540,19 @@ function bwStripHTML(){
     +'</div></div><button data-act="bwedit">'+(last?"Update":"Log")+'</button></div>';
 }
 function entryHTML(s,d,a){
-  const i=esc(s.name);
+  const i=esc(s.name), g=suggestFor(s);
   const wf='<div class="st"><button data-act="bump" data-v="'+i+'" data-f="w" data-d="-1" aria-label="Less weight">−</button>'
-    +'<input id="w_'+slug(s.name)+'" inputmode="decimal" value="'+nice(d.w)+'" data-act="edit" data-v="'+i+'" data-f="w" aria-label="Weight">'
+    +'<input id="w_'+slug(s.name)+'" inputmode="decimal" value="'+esc(d.w)+'" placeholder="'+nice(g.w)+'" data-act="edit" data-v="'+i+'" data-f="w" aria-label="Weight">'
     +'<button data-act="bump" data-v="'+i+'" data-f="w" data-d="1" aria-label="More weight">+</button></div>';
   const rf='<div class="st"><button data-act="bump" data-v="'+i+'" data-f="r" data-d="-1" aria-label="Fewer reps">−</button>'
-    +'<input id="r_'+slug(s.name)+'" inputmode="numeric" value="'+d.r+'" data-act="edit" data-v="'+i+'" data-f="r" aria-label="Reps">'
+    +'<input id="r_'+slug(s.name)+'" inputmode="numeric" value="'+esc(d.r)+'" placeholder="'+g.r+'" data-act="edit" data-v="'+i+'" data-f="r" aria-label="Reps">'
     +'<button data-act="bump" data-v="'+i+'" data-f="r" data-d="1" aria-label="More reps">+</button></div>';
+  const label = a.isNew ? "" :
+    (a.bw ? 'Best set '+g.r+' reps' :
+     (a.complete?'Suggested next ':'Working weight ')+nice(Math.abs(g.w))+' kg'+(g.w<0?' assist':'')+' × '+g.r);
   return '<div class="entry">'+(a.bw?"":wf)+rf+'</div>'
     +'<div class="stl">'+(a.bw?"":'<span>kg</span>')+'<span>reps</span></div>'
+    + (label?'<button class="usebtn" data-act="use" data-v="'+i+'">'+label+' · tap to fill</button>':"")
     +'<button class="add" data-act="add" data-v="'+i+'">+ Add set</button>';
 }
 function slug(n){ return n.replace(/[^a-zA-Z0-9]/g,"").slice(0,20); }
@@ -526,9 +570,20 @@ function detailHTML(s){
       +'<div class="row"><span>Sessions</span><b>'+s.n+'</b></div>'
       +'<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:8px"><span>Rep bank by weight</span></div>';
     [...a.cum.entries()].sort((x,y)=>x[0]-y[0]).forEach(([w,n])=>{
+      const G=a.G||100;
       h+='<div class="row"><span>'+nice(Math.abs(w))+' kg'+(w<0?' assist':'')+'</span>'
-        +'<b'+(n>=GOAL?' style="color:var(--sage)"':'')+'>'+n+' reps'+(n>=GOAL?" ✓":"")+'</b></div>';
+        +'<b'+(n>=G?' style="color:var(--sage)"':'')+'>'+n+' reps'+(n>=G?" ✓":"")+'</b></div>';
     });
+  }
+  if(!a.bw){
+    const g=a.goal||goalFor(s.name);
+    h+='<div class="row" style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px">'
+      +'<span>Goal for this exercise</span><b>'+(g.custom?"custom":"default")+'</b></div>'
+      + sRow("Sets", g.sets, "exsets").replace(/data-act="exsets"/g,'data-act="exsets" data-v="'+esc(s.name)+'"')
+      + sRow("Reps per set", g.reps, "exreps").replace(/data-act="exreps"/g,'data-act="exreps" data-v="'+esc(s.name)+'"')
+      + sRow("Increment", nice(g.step)+" kg", "exstep").replace(/data-act="exstep"/g,'data-act="exstep" data-v="'+esc(s.name)+'"')
+      +'<div class="note" style="margin-top:8px">Banking '+(g.sets*g.reps)+' reps clears a weight here.</div>'
+      +(g.custom?'<button class="usebtn" data-act="exclear" data-v="'+esc(s.name)+'" style="margin-left:0;margin-right:0;width:100%">Use the default goal instead</button>':"");
   }
   return h+'</div>';
 }
@@ -557,7 +612,7 @@ function viewProgress(){
       +'<span class="a"><span class="nm">'+i+'</span>'
       +'<span class="w">'+(a.bw?a.pb+'<span style="font-size:11px"> reps</span>':nice(Math.abs(a.weight))+'<span style="font-size:11px"> kg</span>')+'</span></span>'
       +'<span class="b">'+miniHTML(a)
-      +'<span class="c">'+(a.isNew?"new":(a.bw?(done?"best":a.lastBest+"/"+a.target):(a.complete?"cleared":a.banked+"/100")))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
+      +'<span class="c">'+(a.isNew?"new":(a.bw?(done?"best":a.lastBest+"/"+a.target):(a.complete?"cleared":a.banked+"/"+(a.G||100))))+' · '+agoLabel(a.lastDate)+'</span></span></button>'
       + (open?detailHTML(s)
           +'<button class="solid" data-act="totoday" data-v="'+i+'" style="margin-top:12px">Add to today</button>'
           +'<button class="solid" data-alt="1" data-act="wipe" data-v="'+i+'" style="margin-top:8px">Delete exercise</button>':"")
@@ -586,26 +641,52 @@ function viewHistory(){
   if(!days.length) h+='<div class="empty">No sessions yet.</div>';
   return h+'</div>';
 }
+function stepCycle(cur,dir){
+  const steps=[0.5,1,1.25,2,2.5,5,10];
+  let i=steps.indexOf(Number(cur)); if(i<0) i=4;
+  i=Math.min(steps.length-1,Math.max(0,i+dir));
+  return steps[i];
+}
+function sRow(label,val,act,note){
+  return '<div class="srow"><div class="sl"><div class="k">'+label+'</div>'
+    +(note?'<div class="sn">'+note+'</div>':"")+'</div>'
+    +'<div class="sst"><button data-act="'+act+'" data-d="-1" aria-label="Decrease '+label+'">−</button>'
+    +'<span>'+val+'</span>'
+    +'<button data-act="'+act+'" data-d="1" aria-label="Increase '+label+'">+</button></div></div>';
+}
 function viewData(){
   const days=new Set(D.entries.map(e=>e.d)).size;
   const reps=D.entries.reduce((t,e)=>t+e.sets.reduce((u,s)=>u+s.r,0),0);
-  return '<div class="top"><h2>Data</h2><div class="sub">'+D.entries.length+' entries · '+days+' days · '+reps+' reps</div></div><div class="wrap">'
+  const g=D.settings;
+  const overrides=Object.keys(g.perEx||{});
+  return '<div class="top"><h2>Settings</h2><div class="sub">'+D.entries.length+' entries · '+days+' days · '+reps+' reps</div></div><div class="wrap">'
     +(storageOK?"":'<div class="note" style="color:var(--amber);margin-bottom:16px">Storage is blocked here, so changes won\'t survive a refresh.</div>')
-    +'<div class="bwrow" style="margin-bottom:16px"><div class="l"><div class="k">Rest timer</div>'
-    +'<div class="v">'+(Number(D.settings.rest)?mmss(Number(D.settings.rest)):'Off')+'</div></div>'
-    +'<button data-act="restset">Change</button></div>'
+
+    +'<div class="eyebrow" style="margin:2px 0 9px">Rep bank goal</div>'
+    + sRow("Sets to bank", g.goalSets, "setsets")
+    + sRow("Reps per set", g.goalReps, "setreps")
+    +'<div class="srow" style="border:none;padding-top:4px"><div class="sl"><div class="k" style="color:var(--amber)">'
+      +g.goalSets+' × '+g.goalReps+' = '+(g.goalSets*g.goalReps)+' reps</div>'
+      +'<div class="sn">Bank this many reps at a weight before moving up.</div></div></div>'
+    + sRow("Weight increment", nice(g.step)+" kg", "setstep", "How much to add when a weight is cleared.")
+    + sRow("Rest timer", Number(g.rest)?mmss(Number(g.rest)):"Off", "setrest", "Starts automatically after each set.")
+    +(overrides.length?'<div class="note" style="margin:12px 0 0">'+overrides.length+' exercise'+(overrides.length>1?"s have":" has")+' a custom goal. Change or clear it from that exercise under Progress.</div>':"")
+
+    +'<div class="eyebrow" style="margin:26px 0 9px">Your data</div>'
     +'<button class="solid" data-act="csv">Export CSV for Excel</button>'
-    +'<div class="note" style="margin:9px 0 16px">Same columns as your workbook.</div>'
+    +'<div class="note" style="margin:9px 0 16px">Same columns as your workbook, plus bodyweight and notes.</div>'
     +'<button class="solid" data-alt="1" data-act="backup">Save a backup file</button>'
     +'<div class="note" style="margin:9px 0 16px">Full copy you can restore from. Worth doing monthly.</div>'
     +'<button class="solid" data-alt="1" data-act="restore">Restore from a backup</button>'
     +'<div class="note" style="margin:9px 0 16px">Replaces everything in the app.</div>'
-    +'<button class="solid" data-alt="1" data-act="reset">Reset to workbook data</button>'
-    +'<div class="note" style="margin-top:22px"><b style="color:var(--mute)">Weighted:</b> a weight clears once it banks '+GOAL+' reps. '
-    +'Your working weight is the lightest from your last session that hasn\'t cleared — heavier sets bank toward their own goals.<br><br>'
+    +'<button class="solid" data-alt="1" data-act="reset">Start over</button>'
+
+    +'<div class="note" style="margin-top:24px"><b style="color:var(--mute)">Weighted:</b> a weight clears once it banks '
+    +(g.goalSets*g.goalReps)+' reps. Your working weight is the lightest from your last session that hasn\'t cleared — '
+    +'heavier sets bank toward their own goals.<br><br>'
     +'<b style="color:var(--mute)">Bodyweight:</b> anything at 1 kg. No load to add, so the goal is beating your best single set.<br><br>'
-    +'<b style="color:var(--mute)">Removing things:</b> “Remove from today” on a card clears it from this session only. '
-    +'“Delete exercise” under Progress, or Edit inside Add exercise, erases it and all its history for good.</div>'
+    +'<b style="color:var(--mute)">Removing things:</b> “Remove from today” clears an exercise from this session only. '
+    +'“Delete exercise” under Progress erases it and all its history for good.</div>'
     +'<div class="note" style="margin:22px 0 0;opacity:.55">RepBank v'+APP_VERSION+' · data format '+DATA_VERSION+' · works offline</div></div>';
 }
 
@@ -655,8 +736,10 @@ function addSet(name){
   const bw=st&&st.a.bw;
   const wi=$("#w_"+slug(name)), ri=$("#r_"+slug(name));
   const w=bw?1:parseFloat(wi.value), r=parseInt(ri.value,10);
+  if(!bw && wi.value.trim()===""){ toast("Enter a weight"); return; }
+  if(ri.value.trim()===""){ toast("Enter your reps"); return; }
   if(isNaN(w)||isNaN(r)||r<=0){ toast("Check the numbers"); return; }
-  S.draft[name]={w,r};
+  delete S.draft[name];
   const t=todayISO();
   const pb=priorBest(name,t);
   let e=D.entries.find(x=>x.d===t&&x.e===name);
@@ -755,7 +838,7 @@ document.addEventListener("click",ev=>{
   }
   else if(act==="bump"){
     const f=t.dataset.f, dir=Number(t.dataset.d), inp=$("#"+f+"_"+slug(v));
-    const step=f==="w"?2.5:1;
+    const step=f==="w"?(goalFor(v).step||2.5):1;
     let n=parseFloat(inp.value); if(isNaN(n)) n=0;
     n=Math.round((n+dir*step)*100)/100;
     if(f==="r"&&n<0) n=0;
@@ -771,6 +854,7 @@ document.addEventListener("click",ev=>{
   }
   else if(act==="restclose"){ stopRest(); }
   else if(act==="restadd"){ restEnd+=30000; restTot+=30; restDone=0; paintRest(); }
+  else if(act==="restsub"){ restEnd-=30000; restTot=Math.max(1,restTot-30); paintRest(); }
   else if(act==="note"){ S.noting=v; render();
     const n=document.querySelector('[data-act="notetext"]'); if(n){ n.focus(); } }
   else if(act==="bwedit"){ S.bwEdit=true; render(); }
@@ -787,12 +871,41 @@ document.addEventListener("click",ev=>{
     D.bodyweight.push({d:day,kg:n});
     S.bwEdit=false; save(); render(); toast(nice(n)+" kg logged");
   }
-  else if(act==="restset"){
-    const cur=Number(D.settings.rest)||0;
-    const steps=[0,30,45,60,75,90,120,150,180,240,300];
-    const i=steps.indexOf(cur);
-    D.settings.rest = steps[(i<0?5:i+1)%steps.length];
+  else if(act==="setrest"){
+    const steps=[0,30,45,60,75,90,105,120,150,180,240,300];
+    let i=steps.indexOf(Number(D.settings.rest)||0); if(i<0) i=5;
+    i=Math.min(steps.length-1,Math.max(0,i+Number(t.dataset.d)));
+    D.settings.rest=steps[i]; save(); render();
+  }
+  else if(act==="setsets"){
+    D.settings.goalSets=Math.min(30,Math.max(1,(D.settings.goalSets||10)+Number(t.dataset.d)));
     save(); render();
+  }
+  else if(act==="setreps"){
+    D.settings.goalReps=Math.min(50,Math.max(1,(D.settings.goalReps||10)+Number(t.dataset.d)));
+    save(); render();
+  }
+  else if(act==="setstep"){
+    D.settings.step=stepCycle(D.settings.step,Number(t.dataset.d));
+    save(); render();
+  }
+  else if(act==="exsets"||act==="exreps"||act==="exstep"){
+    const g=goalFor(v); const p=D.settings.perEx=D.settings.perEx||{};
+    const o=p[v]=p[v]||{sets:g.sets,reps:g.reps,step:g.step};
+    if(act==="exsets") o.sets=Math.min(30,Math.max(1,o.sets+Number(t.dataset.d)));
+    if(act==="exreps") o.reps=Math.min(50,Math.max(1,o.reps+Number(t.dataset.d)));
+    if(act==="exstep") o.step=stepCycle(o.step,Number(t.dataset.d));
+    save(); render();
+  }
+  else if(act==="exclear"){
+    if(D.settings.perEx) delete D.settings.perEx[v];
+    save(); render(); toast("Back to the default goal");
+  }
+  else if(act==="use"){
+    const st=stats().find(x=>x.name===v); if(!st) return;
+    const g=suggestFor(st);
+    S.draft[v]={w:st.a.bw?"":nice(g.w), r:String(g.r)};
+    render();
   }
   else if(act==="csv"){ exportCSV(); }
   else if(act==="backup"){ download("repbank-backup-"+todayISO()+".json",JSON.stringify(D),"application/json"); }
